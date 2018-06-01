@@ -1,0 +1,2 @@
+FROM
+MAINTAINER jvolkova@griddynamics.com
