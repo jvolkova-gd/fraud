@@ -1,0 +1,138 @@
+version: '3.6'
+services:
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+    hostname: "zookeeper"
+    networks:
+      data-analyt:
+        ipv4_address: 172.19.0.3
+        aliases:
+          - zookeeper
+
+  kafka:
+    image: jvolkova/kafka:gridu
+    build:
+      context: ./kafka
+      dockerfile: kafka.dockerfile
+    ports:
+      - target: 9094
+        published: 9094
+        protocol: tcp
+        mode: host
+    hostname: "kafka"
+    depends_on:
+          - zookeeper
+    environment:
+      HOSTNAME_COMMAND: "docker info | grep ^Name: | cut -d' ' -f 2"
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9092,OUTSIDE://_{HOSTNAME_COMMAND}:9094
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: "clicks:3:1,views:3:1"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      data-analyt:
+        ipv4_address: 172.19.0.2
+        aliases:
+          - kafka
+
+  spark_ds:
+    image: jvolkova/spark:gridu
+    build:
+      context: ./spark
+      dockerfile: spark.dockerfile
+      target: spark_ds
+    ports:
+        - "8080:8080"
+        - "6066:6066"
+        - "7077:7077"
+    depends_on:
+        - kafka
+        - cassandra
+    volumes:
+      - ${PWD}/spark/target:/jars
+    networks:
+      data-analyt:
+        ipv4_address: 172.19.0.6
+        aliases:
+          - spark_ds
+
+  spark_df:
+      image: jvolkova/spark:gridu
+      build:
+        context: ./spark
+        dockerfile: spark.dockerfile
+        target: spark_df
+      ports:
+          - "8081:8081"
+          - "6067:6067"
+          - "7078:7078"
+      depends_on:
+          - kafka
+          - cassandra
+      volumes:
+        - ${PWD}/spark/target:/jars
+      networks:
+        data-analyt:
+          ipv4_address: 172.19.0.11
+          aliases:
+            - spark_df
+
+  flume:
+    image: jvolkova/flume:gridu
+    build:
+      context: ./flume
+      dockerfile: flume.dockerfile
+    ports:
+      - "444:44444"
+    networks:
+        data-analyt:
+          ipv4_address: 172.19.0.4
+    depends_on:
+      - kafka
+    volumes:
+      - data_vol:/data
+
+  cassandra:
+    image: jvolkova/cassandra:gridu
+    build:
+      dockerfile: cass.dockerfile
+      context: ./cassandra
+    hostname: "cassandra"
+    networks:
+      data-analyt:
+        ipv4_address: 172.19.0.10
+
+
+  botgen:
+    image: jvolkova/botgen:gridu
+    build:
+      context: ./botgen
+      dockerfile: botgen.dockerfile
+    volumes:
+      - data_vol:/data
+    depends_on:
+      - flume
+
+networks:
+  data-analyt:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/16
+
+
+volumes:
+ data_vol:
+   driver: local
+   driver_opts:
+     type: none
+     device: ${PWD}/source_data
+     o: bind
+

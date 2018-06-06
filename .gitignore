@@ -1,0 +1,5 @@
+.idea
+./fraudocker/target
+bot-detection.iml
+source_data/source.json
+source_data/flume_taildir_position.json
