@@ -46,7 +46,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>jvolkova.gridu.sparkappfraud.SparkDStream</mainClass>
+              <mainClass>main.java.jvolkova.gridu.sparkappfraud.SparkDStream</mainClass>
             </manifest>
           </archive>
         </configuration>

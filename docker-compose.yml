@@ -56,7 +56,7 @@ services:
         - kafka
         - cassandra
     volumes:
-      - ${PWD}/spark/target:/jars
+      - spark_jars:/jars
     networks:
       data-analyt:
         ipv4_address: 172.19.0.6
@@ -77,7 +77,7 @@ services:
           - kafka
           - cassandra
       volumes:
-        - ${PWD}/spark/target:/jars
+        - spark_jars:/jars
       networks:
         data-analyt:
           ipv4_address: 172.19.0.11
@@ -104,10 +104,30 @@ services:
     build:
       dockerfile: cass.dockerfile
       context: ./cassandra
-    hostname: "cassandra"
+    hostname: cassandra
+    ports:
+    - "9042:9042"
+    - "9160:9160"
+    - "7199:7199"
+    - "7001:7001"
+    - "7000:7000"
+
+    environment:
+      MAX_HEAP_SIZE: 500M
+      HEAP_NEWSIZE: 100M
+      CASSANDRA_CLUSTER_NAME: cass-db
+      CASSANDRA_DC: noname
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+
+      CASSANDRA_SEEDS: cassandra,cassandra2,cassandra3
+      CASSANDRA_BROADCAST_ADDRESS: "auto"
+      CASSANDRA_LISTEN_ADDRESS: "auto"
+      CASSANDRA_CQL_PORT_NUMBER: 9042
     networks:
       data-analyt:
         ipv4_address: 172.19.0.10
+    volumes:
+      - ./data/cassandra:/var/lib/cassandra
 
 
   botgen:
@@ -135,4 +155,12 @@ volumes:
      type: none
      device: ${PWD}/source_data
      o: bind
+
+ spark_jars:
+   driver: local
+   driver_opts:
+     type: none
+     device: ${PWD}/spark/target
+     o: bind
+
 

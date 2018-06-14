@@ -6,5 +6,4 @@ for f in initdb/*; do
     esac
     echo
 done
-
 exec /docker-entrypoint.sh "$@"

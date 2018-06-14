@@ -9,9 +9,8 @@
 
     git clone https://github.com/jvolkova-ias/fraud
     
-    cd src/sparkappfraud && mvn package
-    cd ../jsoninterceptor && mvn package
-    cd ../../fraudocker
+    cd spark/sparkappfraud && mvn package && cd ../../
+    cd flume/jsoninterceptor && mvn package && cd ../../
     docker-compose up 
 
 Those steps will up all parts of project and generator will start produce source data. 
